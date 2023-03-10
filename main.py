@@ -17,6 +17,8 @@ import os
 from flask import Flask, request
 from google.appengine.api import mail
 from google.appengine.api import wrap_wsgi_app
+from google.cloud import storage
+from datetime import date
 
 app = Flask(__name__)
 
@@ -96,6 +98,15 @@ def receive_mail(path):
     for content_type, payload in message.bodies("text/plain"):
         print(f"Text/plain body: {payload.decode()}")
         break
+
+    for filename, filecontent in message.attachments:
+        print("Received attachment: ", filename)
+        storage_client = storage.Client()
+        bucket = storage_client.bucket("email-attachment-test")
+        blob = bucket.blob(f'{date.today():%Y-%m-%d}/{filename}')
+
+        with blob.open("wb") as f:
+            f.write(filecontent.decode())
 
     return "OK", 200
 
