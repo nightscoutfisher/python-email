@@ -105,7 +105,7 @@ def receive_mail(path):
         bucket = storage_client.bucket("email-attachment-test")
       #  blob = bucket.blob(f'{date.today():%Y-%m-%d}/{filename}')
         sender = str(message.to).split('@')[0]
-        blob = bucket.blob(f'{sender}/{filename}')
+        blob = bucket.blob(f'{sender}/input/{filename}')
 
         with blob.open("wb") as f:
             f.write(filecontent.decode())
