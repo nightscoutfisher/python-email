@@ -18,7 +18,7 @@ from flask import Flask, request
 from google.appengine.api import mail
 from google.appengine.api import wrap_wsgi_app
 from google.cloud import storage
-from datetime import date
+from datetime import date, datetime
 
 app = Flask(__name__)
 
@@ -93,22 +93,34 @@ def receive_bounce():
 def receive_mail(path):
     message = mail.InboundEmailMessage(request.get_data())
 
+    sender = str(message.to).split('@')[0]
+    sender = sender.strip('\"')
+
     # Do something with the message
-    print(f"Received greeting for {message.to} at {message.date} from {message.sender}")
+    print(f"Received greeting for {sender} at {message.date} from {message.sender}")
     for content_type, payload in message.bodies("text/plain"):
         print(f"Text/plain body: {payload.decode()}")
-        break
-
-    for filename, filecontent in message.attachments:
-        print("Received attachment: ", filename)
         storage_client = storage.Client()
         bucket = storage_client.bucket("email-attachment-test")
-      #  blob = bucket.blob(f'{date.today():%Y-%m-%d}/{filename}')
-        sender = str(message.to).split('@')[0]
-        blob = bucket.blob(f'{sender}/input/{filename}')
+        blob = bucket.blob(f'{sender}/input/{datetime.today():%Y-%m-%d_%H:%M:%S}email.txt')
 
-        with blob.open("wb") as f:
-            f.write(filecontent.decode())
+        with blob.open("wt") as f:
+            f.write(payload.decode())
+        print("WROTE BODY OF EMAIL")
+        break
+
+    # if message.attachments is not None:
+    try:
+        for filename, filecontent in message.attachments:
+            print("Received attachment: ", filename)
+            storage_client = storage.Client()
+            bucket = storage_client.bucket("email-attachment-test")
+            blob = bucket.blob(f'{sender}/input/{filename}')
+
+            with blob.open("wb") as f:
+                f.write(filecontent.decode())
+    except:
+       print("NO ATTACHMENT")
 
     return "OK", 200
 
